@@ -1,0 +1,468 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "!pip --quiet install stop_words\n",
+    "!pip --quiet install gensim\n",
+    "!pip --quiet install pyLDAvis"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/resources/common/.virtualenv/python3/lib/python3.4/site-packages/gensim/utils.py:1015: UserWarning: Pattern library is not installed, lemmatization won't be available.\n",
+      "  warnings.warn(\"Pattern library is not installed, lemmatization won't be available.\")\n"
+     ]
+    }
+   ],
+   "source": [
+    "from nltk.tokenize import RegexpTokenizer\n",
+    "from stop_words import get_stop_words\n",
+    "from nltk.stem.porter import PorterStemmer\n",
+    "from gensim import corpora, models\n",
+    "import gensim\n",
+    "import pyLDAvis.gensim\n",
+    "import pyLDAvis\n",
+    "import json"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "tokenizer = RegexpTokenizer(r'\\w+')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "# create English stop words list\n",
+    "en_stop = get_stop_words('en')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "# Create p_stemmer of class PorterStemmer\n",
+    "p_stemmer = PorterStemmer()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[\"The reason you're getting that is because the actual website is run through [Shopify] but the domain is bluedotvapors.com. Chrome detects this and thinks that it's trying to redirect you a false site to phish for personal information, which is not the case. We will be contacting Shopify to see if this can be resolved.\",\n",
+       " \"Questions about shopify\\n---\\nHey there, \\n\\nYou are totally able to do all of that :)\\n\\n - For a list, check out [collections] which allows a manually curated list, or an automated list based on some number of conditions\\n - For promotions, we have [discounts] and a number of [apps to help you if you need]\\n - As for the look of your store, you can do whatever you want using the [liquid] templating language, HTML, CSS/SCSS, and Javascript. More resources: [here] [themes here] and [themes here]\\n\\nShopify is a Saas commerce platform that let's you run an online business through various mediums, such as a [POS] online shop, [Facebook] etc. It is actually not a listing platform and we don't offer a marketplace - we offer you a chance to build your own brand, which we try to help with through various offerings such as [webinars] [24/7 support] [Shopify Experts] who are freelancers and studios specialized in Shopify, and much more. We're also working on kickass features constantly to try and make your life as an entrepreneur easier and better.\\n\\n\\nCheers,\\n\\nJulian, Shopify Dev\",\n",
+       " 'Help with starting an online shop?\\n---\\nHow about Shopify? ',\n",
+       " \"Opening up a small e-shop this summer, would like some advice.\\n---\\nThere are two most popular eCommerce solutions you might want to consider. They are Sopify (hosted solution) and Magento (open source solution). For a small business like yours, they both will require a basic installation without any advanced features that you'll be able to add when your business grows if required. \\n\\nThe good thing about Shopify is that it's easy to install even for non-tech users. The bad thing about Shopify is that you'll have to pay monthly fees not only for the service itself but also for each plugin you will want to add during your business life span.\\n\\nThe good thing about Magento is that you can pay only once for installation and deployment services and go on running business without any recurring monthly fees. A Magento downside is that you probably won't be able to install the system by your own and will need to hire Magento developers.\\n\\nIf you'd like to know more about these two eCommerce solutions you are welcome to read our recent article titled [Magento vs. Shopify. What eCommerce platform to use] \",\n",
+       " \"Good resources for building e-commerce sites?\\n---\\nTypically, you'd setup a site with secure SSL (https) for taking payments and integrate a merchant account. It can be complicated, but there are a lot of packaged systems that make the process easier. Like Weebly eCommerce, Shopify, or Volusion. I did a comparison of two of those here with videos of each: \\n\",\n",
+       " \"&gt;[Shopping Cart by Shopify.]\\n\\nIts not at all unlikely that they just opted for the ecommerce platform, shoppify being the most popular one these days, and chose the same minimal stock theme. If it was the same people trying to cover something up you think theyd just slap a different theme on at least, it only takes a few clicks.\\n\\nedit: upon a little further investigation theres virtually no simalarities in the way the template is set up and the way the products are listed, etc.. I'd say its a big reach if all youre going is theyre using the same template.\",\n",
+       " 'What is the best method for creating a website?\\n---\\nIf it\\'s strictly an E-commerce store, I\\'d recommend Shopify - you can buy themes [here]\\n\\nIf you plan on having a blog and more of a \"full\" site, I\\'d recommend Wordpress and buying a theme from [Themeforest]\\n\\nIt may not be the easiest thing in the world when you\\'re just beginning &amp; if you don\\'t have time to learn, it\\'d probably be better to hire a professional. I\\'d probably look at freelancers first and if you don\\'t like what they have to offer, move on to higher end local devs or agencies.',\n",
+       " \"Anti-gun tech companies\\n---\\nHey everyone, in the interest of clarity, you can (and many merchants do) use Shopify to sell firearms and ammunition, we just aren't able to handle credit cards for you using Shopify Payments. You'll just need to have your own merchant account setup with [a gateway we're compatible with] or a Coinbase account for taking payment by Bitcoin.\",\n",
+       " \"Montreal’s Lightspeed targets U.S. as credit card security rules shift\\n---\\nI didn't know Shopify (mentioned in the article) did POS, I thought it was eCommerce only.  [But looks like they do indeed have a POS setup]  Sadly, even though the company is based in Canada, they don't have a chip compatible card reader.\",\n",
+       " \"Any experience with setting shipping prices? And with quantity breaks?\\n---\\nFor the shipping would setting it to be weight based solve your problem? You would still need to set it up based on location but using something like the Shopify fd chrome plugin makes this relatively quick to do  \\n\\nFor the quantity breaks, I can't recommend the app enough as it does make life so much easier but if you really don't want to use it you could maybe instead look at changing the product so that it's sold in units of 10/20 etc. This way you'd have one variant set up for a single unit, then one set up for packs of 10, another for packs of 20 meaning you can have different prices for each and if someones wanting 40, they just order 2 packs of 20.\\n\\nThe only downside of this is that managing the inventory may get messy, ( there is an app that could help with that though that is cheaper than the quantity breaks   ) and for people wanting to order odd numbers it may be a little more difficult (eg if someone wants 11 they'd either have to add 10 to the basket then another 1 or add 11 single produicts at the higher price. That said, it may also encourage people to buy more so it could work out better for you long term) \",\n",
+       " \"AMA - I'm an internet marketing/SEO/web design consultant, and I'm willing to share some of my tricks\\n---\\nI've make website extensions for the Shopify platform. I only want to market to Shopify Store owners. What is the best way to target that specific audience and then convert them to buy my app? \",\n",
+       " 'It\\'s not so easy to explain how to validate the market in a few sentences. Google some info about \"market research validation\". Some weeks ago I read this blog post from the people of Shopify, you should check it out ',\n",
+       " \"We make one, but it isn't on the Shopify theme store. We customise it to each store owners specific requirements, as everybody has a different way of doing wholesale \\n\\n-- edit --\\nI should add that we also have a way to show the wholesale products in a list format with a quantity and add button for each, or also just one button for a range of products to be added at once. Some of those options are limited by the API though.\",\n",
+       " 'What are the easy, fastest, secure way to sell online?\\n---\\n[Shopify] is a good bet.',\n",
+       " 'E-Commerce websites, anyone?\\n---\\nCheck out /r/ecommerce. Also might be good to look for threads comparing them, like \\n\\nPlease, whatever you do, avoid Wix! Yes they\\'re cheap but they have terrible support and migrating a site away from them is a nightmare. If you\\'re not convinced, just look up [stories] [online] Just recently had to move a client\\'s e-commerce store outta there and it was so frustrating!\\n\\nIf I were you, I would just go for Shopify. It ticks off everything on your list: supports large quantities of products, free [Digital Downloads App] which is what you would install to add that functionality, lots of solid themes out there that are responsive (mobile-friendly) and built well, customer accounts are a built-in feature.\\n\\nOther options:\\n\\n* [Tictail] - \"Free\" but the apps aren\\'t. Looks very clean/professional though\\n* [Big Cartel] - Cheaper than Shopify, though may be a bit limited\\n* [Spree Commerce] - Only just heard about this so don\\'t know much, but it powers the Chipotle website and Rick Owens\\' so might be worth it to try the demo at least\\n\\nHope that helps!',\n",
+       " 'Thank you!  I have a facebook page where i will make an announcement.    I am building my shopify page and will be up soon. ',\n",
+       " \"Ecommerce site for Tour booking\\n---\\nIf you go with Shopify check out [BookThatApp] We built this specifically to integrate booking functionality into the Shopify platform and have quite a few folks using it for tours now. \\n\\nRegarding automatically transfer money to the agent I know our merchants use our reports  to reconcile what is owing to who. I'm not aware of any way to automate that.\\n\",\n",
+       " \"New here... I'm looking for a hassle-free payments processor/shopping cart. My brain is mushed... Please help.\\n---\\nShopify accepts multiple payment types including Bitcoin and PayPal.\\n\\n\\n\",\n",
+       " 'Is there a website builder that can help me manage distributor/wholesale/public orders?\\n---\\nShopify + ',\n",
+       " \"Is there an easy way to have FBA automatically fulfill orders from an ecommerce site hosted by Shopify?\\n---\\n\\n---\\nGot it. So I can use Shopify's native FBA integration as long as I don't ship to APO/FPO or international addresses, and I can automate the process by going into my stores Admin: Settings / Checkout / Order processing and selecting [Automatically fulfill all of the order's line items]\\n\\nDo you happen to know if there is a third party app that would allow me to do this without excluding our service wom(men) with APO/FPO shipping addresses?... and preferably with international shipping being support as well?\\n\\nThank you!\",\n",
+       " \"It's Triumphant Tuesday! Post your recent Drupal wins and launches\\n---\\nWe just did a dev release on our Shopify/Drupal integration module. Review/feedback always appreciated. :)\\n\\n\",\n",
+       " \"It's Shopify, and the theme looks like Solo.\\n\\n\\n\\nI am not a huge fan of Shopify, but it works for small projects....\\n\\nIf you know what you're doing with a computer, hosting it yourself is usually a better idea, and allows for more custom work to be done. You also fully own the site, and are not limited to what updates they want you to have.\\n\\nWooCommerce is a great self hosted platform, and is 100% free. You just need to pay for the hosting, and the plugins. Here are some example themes that can be purchased:\\n\\n\",\n",
+       " \"How are you finding woocommerce? I am about to start a website with probably 50+ items, and i'm wandering what route to go down, shopify, woocommerce, are there other popular store platforms out there?\\n---\\nNot the guy you replied to but it depends on what you're trying to accomplish overall and depends on you're level of website knowledge.\\n\\nWordpress with woocommerce is a very customizable platform that has endless possibilities while shopify is more suited to a quick and easy set up.\\n\\nBoth are fine for selling any number of items.\\n\\n[Here] is a great thread that will help explain into more detail :)\\n\\n \",\n",
+       " \"If anyone's worked with Shopify apps before, can you please PM me. My mom's florist site is having a problem and since it's Mothers Day, so it's critical.\\n---\\nIf it is really that critical, head over to [Shopify Experts] and hire someone immediately.\\n\\nAlso, it would be very helpful if you would post what issues you are having. Otherwise there is not way to help you.\",\n",
+       " \"The reason you're getting that is because the actual website is run through [Shopify] but the domain is bluedotvapors.com. Chrome detects this and thinks that it's trying to redirect you a false site to phish for personal information, which is not the case. We will be contacting Shopify to see if this can be resolved.\",\n",
+       " \"Does everyone that uses Shopify just have horrible bookkeeping practices?\\n---\\nJust saw this in the app store actually, it's a Shopify app that integrates your store with quickbooks:\\n\\n\",\n",
+       " \"I guess I'm a wee bit confused by the integration of Shopify with Drupal.  If something already can be plugged into Shopify, is there also a need for it to also plug into Drupal?  Perhaps you can help me wrap my head around that. \\n\\nMy on-the-fly thinking is that it would need to be.  Here's a brief look at flow: \\n\\nInventory managed within the app/module for all channels and Shopify (cart and theme).  But what happens if the theme is Drupal rather than Shopify...\\n\"]"
+      ]
+     },
+     "execution_count": 6,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# download data from input_json\n",
+    "input_json = '/resources/data/to_vibhor3.json'\n",
+    "comment_set = []\n",
+    "for line in open(input_json):\n",
+    "    comment = json.loads(line)\n",
+    "    comment_set.append(comment['full_body'])\n",
+    "comment_set"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": [
+    "# list for tokenized documents in loop\n",
+    "texts = []\n",
+    "\n",
+    "# loop through document list\n",
+    "for i in comment_set:\n",
+    "    \n",
+    "    # clean and tokenize document string\n",
+    "    raw = i.lower()\n",
+    "    tokens = tokenizer.tokenize(raw)\n",
+    "\n",
+    "    # remove stop words from tokens\n",
+    "    stopped_tokens = [i for i in tokens if not i in en_stop]\n",
+    "    \n",
+    "    # stem tokens\n",
+    "    stemmed_tokens = [p_stemmer.stem(i) for i in stopped_tokens]\n",
+    "    \n",
+    "    # add tokens to list\n",
+    "    texts.append(stemmed_tokens)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [],
+   "source": [
+    "# turn our tokenized documents into a id <-> term dictionary\n",
+    "dictionary = corpora.Dictionary(texts)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [],
+   "source": [
+    "# convert tokenized documents into a document-term matrix\n",
+    "corpus = [dictionary.doc2bow(text) for text in texts]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[(0,\n",
+       "  '0.002*\"shopifi\" + 0.002*\"instal\" + 0.002*\"t\" + 0.002*\"like\" + 0.002*\"look\" + 0.002*\"just\" + 0.002*\"busi\" + 0.002*\"magento\" + 0.002*\"solut\" + 0.002*\"ecommerc\"'),\n",
+       " (1,\n",
+       "  '0.024*\"shopifi\" + 0.024*\"use\" + 0.024*\"tour\" + 0.024*\"book\" + 0.013*\"site\" + 0.013*\"m\" + 0.013*\"go\" + 0.013*\"check\" + 0.013*\"platform\" + 0.013*\"integr\"'),\n",
+       " (2,\n",
+       "  '0.025*\"just\" + 0.019*\"commerc\" + 0.019*\"look\" + 0.013*\"shopifi\" + 0.013*\"app\" + 0.013*\"websit\" + 0.013*\"support\" + 0.013*\"re\" + 0.013*\"might\" + 0.013*\"e\"'),\n",
+       " (3,\n",
+       "  '0.053*\"shopifi\" + 0.034*\"s\" + 0.021*\"help\" + 0.017*\"can\" + 0.017*\"market\" + 0.017*\"m\" + 0.013*\"look\" + 0.013*\"also\" + 0.013*\"drupal\" + 0.013*\"will\"'),\n",
+       " (4,\n",
+       "  '0.035*\"shopifi\" + 0.013*\"s\" + 0.013*\"use\" + 0.013*\"ecommerc\" + 0.013*\"list\" + 0.013*\"busi\" + 0.013*\"magento\" + 0.010*\"store\" + 0.010*\"just\" + 0.010*\"app\"'),\n",
+       " (5,\n",
+       "  '0.019*\"shopifi\" + 0.019*\"just\" + 0.019*\"one\" + 0.019*\"add\" + 0.019*\"also\" + 0.019*\"way\" + 0.019*\"store\" + 0.019*\"product\" + 0.019*\"wholesal\" + 0.019*\"drupal\"'),\n",
+       " (6,\n",
+       "  '0.032*\"host\" + 0.022*\"shopifi\" + 0.022*\"theme\" + 0.022*\"work\" + 0.011*\"want\" + 0.011*\"just\" + 0.011*\"look\" + 0.011*\"s\" + 0.011*\"also\" + 0.011*\"like\"'),\n",
+       " (7,\n",
+       "  '0.025*\"want\" + 0.025*\"set\" + 0.015*\"break\" + 0.015*\"20\" + 0.015*\"10\" + 0.015*\"may\" + 0.015*\"price\" + 0.015*\"pack\" + 0.015*\"quantiti\" + 0.015*\"make\"'),\n",
+       " (8,\n",
+       "  '0.039*\"shopifi\" + 0.022*\"can\" + 0.022*\"site\" + 0.017*\"account\" + 0.017*\"merchant\" + 0.017*\"payment\" + 0.017*\"re\" + 0.012*\"just\" + 0.012*\"use\" + 0.012*\"setup\"'),\n",
+       " (9,\n",
+       "  '0.025*\"d\" + 0.025*\"shopifi\" + 0.019*\"probabl\" + 0.019*\"re\" + 0.019*\"woocommerc\" + 0.019*\"websit\" + 0.013*\"theme\" + 0.013*\"t\" + 0.013*\"easi\" + 0.013*\"buy\"')]"
+      ]
+     },
+     "execution_count": 10,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# generate LDA model - to modify the number of topics and passes for better results - ordered by probability of appearance\n",
+    "ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics=10, id2word = dictionary, passes=20)\n",
+    "ldamodel.print_topics(20)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {
+    "collapsed": false
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "\n",
+       "<link rel=\"stylesheet\" type=\"text/css\" href=\"https://cdn.rawgit.com/bmabey/pyLDAvis/files/ldavis.v1.0.0.css\">\n",
+       "\n",
+       "\n",
+       "<div id=\"ldavis_el13161397912144685761290737594\"></div>\n",
+       "<script type=\"text/javascript\">\n",
+       "\n",
+       "var ldavis_el13161397912144685761290737594_data = {\"tinfo\": {\"Freq\": [8.0, 35.0, 3.0, 7.0, 11.0, 9.0, 7.0, 7.0, 7.0, 6.0, 7.0, 3.0, 7.0, 4.0, 7.0, 7.0, 5.0, 3.0, 4.0, 6.0, 3.0, 4.0, 3.0, 7.0, 3.0, 4.0, 7.0, 12.0, 6.0, 4.0, 4.3876511479237275, 4.387650212445456, 3.5273247020121232, 2.6674493474048817, 2.6672549464939395, 2.667188711206376, 1.8069731722163445, 1.8069598048532614, 1.8069572313005533, 1.8069396375139979, 1.8069337473547198, 1.8069174005628639, 1.8066732402272103, 1.80672189163588, 1.806680311950581, 1.8067340440067248, 3.5274131394022774, 3.5277738728686017, 4.388007036868002, 2.6669995697445716, 2.6671705031326707, 2.667154381086189, 1.8069644880393063, 1.806869646698141, 0.9465973461973952, 0.9465973461150265, 0.9465973451324957, 0.9465973438756043, 0.9465973429848863, 0.9465612505588338, 1.8068767310689111, 1.8066943001595692, 1.806628778626001, 1.8067109503285874, 4.388039506889389, 2.6673354928603485, 4.388411098550888, 2.6675349572341447, 12.13261453039354, 3.5280698145085814, 2.6676127705436716, 3.5281833074458873, 3.527722028864791, 3.528096666827093, 4.388414264493057, 2.667511362213311, 3.528173731462908, 2.6676349203949448, 3.528052106010825, 2.6671553405179176, 2.667215129307426, 2.667434381556264, 2.6676544452361464, 2.667443336442904, 2.6673447844615508, 3.120945311380052, 1.6006165382684108, 1.6006165379262265, 1.6006165370196026, 1.600616531618916, 1.6006165251440558, 1.600140502573205, 3.11835476698134, 0.8384181872677648, 0.8384181871098322, 0.8384181870218672, 0.8384181868578082, 0.8384181868887, 0.838418186896785, 0.83841818682167, 0.8384181866844301, 0.8384181866872858, 0.8384181866337235, 0.8384181865034119, 0.8384181862747493, 0.8384181861907043, 0.8384181861050279, 0.8384181860844585, 0.8384181861673035, 0.8384181860732809, 0.8384181858827588, 0.8384181855958076, 0.8384181855269298, 0.838418185297043, 0.8384181847176618, 2.362814661061302, 1.6006162901278702, 1.600646551965158, 1.6006787664780768, 1.6006533271568817, 1.6005878846326422, 1.600617927435274, 6.174208444978969, 3.887287671483163, 9.679938120606737, 2.362714420735461, 2.3628695886904274, 2.362920861613459, 3.1255218258150106, 1.600854904055781, 1.600786461865662, 1.6000674197177522, 1.7584593855404378, 1.6006626471647865, 1.6008093000963572, 0.9624714891864414, 0.9087481781714976, 2.3085708682592068, 2.3085149623360657, 2.308467220884082, 2.3084448366917267, 2.3084445775322235, 1.563860431009071, 1.5637907531999453, 1.5637959142538036, 1.563778554956587, 0.8191862257786074, 0.819183071149629, 0.8191774180665471, 0.8191727708066796, 0.8191700304561346, 0.8191684419319321, 0.8191664987455726, 0.8191690497130213, 0.8191666287887112, 0.8191654734932055, 0.8191540322572907, 0.819150742909014, 0.8191529374495851, 0.8191503972088118, 0.8191469634615964, 0.8191483587776355, 0.8191498436686299, 0.8191493746097185, 0.8191491728014085, 0.8191419141356129, 0.8191437649537098, 3.797758904909115, 2.3084283878160416, 2.3084509384550524, 3.797836438521314, 1.5637948199417109, 2.240082255122504, 1.5637713983624677, 1.5638605072152585, 1.5638237877498145, 1.563798166489407, 1.5637940306043359, 2.1545509246948855, 1.5638366793797416, 1.563769159433483, 1.563797162615077, 1.5638660162666629, 1.4428752640888767, 1.5638620666454028, 1.5638995280262569, 1.1182141640828693, 0.8192798250845377, 1.482410300509439, 1.4824103011997039, 1.4824103008250675, 1.4824103013338283, 1.4824103015403514, 1.4824103016760357, 1.482410301716509, 1.4824103010494767, 1.4824103009951692, 1.4824103006280454, 1.482410301002954, 1.4824103016621226, 1.4824103009526604, 1.482410301200085, 2.188655088350719, 2.188657220626527, 0.7766586541348816, 0.7766436092621911, 0.776641556852723, 0.7766413469068199, 0.7766391912290854, 0.7766375282167056, 0.7766320170121539, 0.7766272890664169, 0.7766240164156576, 0.776623842958725, 0.7766226100938539, 0.776613450967652, 0.7766068766912451, 0.7766053507294516, 2.188622599496413, 1.4824101999264565, 1.4824102000181756, 1.482640568925872, 1.4826314235210603, 2.8944854078847952, 1.4824132194524045, 1.4824710715060967, 1.4824132284744056, 2.188451864987694, 2.894510878345626, 5.012618277998647, 1.4824227510621373, 1.4824373488987923, 1.48286229222079, 1.4826488369033424, 1.4825804141169197, 1.4824876073820574, 1.4400219567363262, 1.4399034482862605, 2.1256513982702203, 2.1257667839430536, 0.7544206936315679, 0.7544206931088365, 0.7543613221037765, 0.754361310167953, 0.754355939795333, 0.7543528474423262, 0.7543530526772799, 0.7543486165998515, 0.7543485238957738, 0.754347990294265, 0.7543472343084043, 0.7543468483800091, 0.7543444716220078, 0.7543439417959018, 0.754343234012219, 0.7543345413043658, 0.754329706029141, 0.754329264582686, 0.7542937666851962, 0.7542728720708347, 0.7542684961851515, 0.7542625731237436, 0.7542613846973517, 0.7542587536665611, 0.7542558474276344, 0.7542546554177466, 1.4400995966566834, 1.4400860086251555, 1.439930395614395, 2.811798865107884, 1.440106564896869, 2.125606988943944, 2.125724453476742, 1.4401110049840478, 1.4401018072182579, 2.8115966700026283, 1.439981600608719, 1.4399953235401735, 1.4402365838214368, 1.440133738850889, 0.7545191909418711, 0.754437629916584, 0.7544256003417816, 0.7544183245382574, 0.7544173519865243, 0.7544018036093886, 0.7543945613086366, 0.7543730049901514, 0.7543654026456297, 0.7543634615088575, 1.443767200031651, 0.7563131676838692, 0.7562907175539089, 0.7563000150690653, 0.7562997327798481, 0.7562915022256833, 0.7562929603038574, 0.7562831566542433, 0.756286098001086, 0.7562775535390545, 0.7562782389467654, 0.7562826265589153, 0.756280812188253, 0.7562871013860891, 0.7562774457322804, 0.7562850103951508, 0.7562755324460905, 0.7562671692998416, 0.7562660020777464, 0.756270003554025, 0.7562752218632588, 0.7562733973176584, 0.7562659889519056, 0.756263037344729, 0.7562772306261487, 0.7562796843500474, 0.7562645766342164, 0.7562776018215637, 0.7562738282208837, 0.7562565051555028, 0.756262313106352, 1.4438168482053615, 2.1315257364947233, 1.4437365339567727, 1.4438553912586396, 2.819052331692679, 2.1313103641378572, 1.443738884535323, 1.4438100114806955, 1.4438642267785007, 1.4438288259933292, 1.4439495568577407, 1.4437763354985906, 1.4443613273449971, 0.7565676242315549, 0.7564667152356741, 0.7564375260491586, 0.756431090497442, 0.7564089422446304, 0.7564027436984603, 0.7563990987265071, 0.7563671676710304, 0.7563646344142517, 0.7563536459115673, 0.7563479212400038, 0.7563326115250353, 0.7563169277600944, 0.7563117887745695, 0.7563095314680676, 1.1166672216842302, 0.58495334042958, 0.5849518636808008, 0.5849518327464704, 0.5849427251345466, 0.5849449033523709, 0.5849385158312825, 0.584940050116049, 0.5849396642805523, 0.5849367217676129, 0.5849340568112267, 0.5849349936003233, 0.5849266446656877, 0.5849244721304493, 0.5849262310848166, 0.5849172677786515, 0.5849111318433319, 0.58490730145683, 1.1167166341350976, 0.5849632536041688, 0.5849291063766625, 0.5849591331066132, 0.5849399150750801, 1.1166923721893875, 1.1167197547442669, 1.1168570045958321, 0.5849237002655705, 0.5849855886758549, 0.5849409722240695, 0.584960993089248, 1.1168473314889167, 1.1167741270392806, 1.1167707050120237, 1.116726265556968, 1.1168817455422082, 1.116888553529414, 0.5851433884736985, 0.5851153450852283, 0.5850934593344735, 0.5850667318897779, 0.5850113720730303, 0.5850051536822715, 0.585002993285048, 0.584999245351998, 0.5849738660627, 0.5268087231806774, 0.5268082477770638, 0.5268070869025115, 0.52680588853267, 0.5268044000267369, 0.5268023909584045, 0.5268021792425442, 0.5268020277681447, 0.5268002504816902, 0.5267973663969776, 0.5267950720895779, 0.5267887215267314, 0.526788616064535, 0.5267878161686158, 1.4846385237521627, 0.5267971276088725, 0.5268225697346915, 1.0057914601282563, 0.5268466689567259, 0.5268933011814203, 0.5268713450148217, 0.5268501904746611, 0.5268186149895004, 0.526798182790325, 0.5268310748029986, 0.5269461235885231, 0.526847862421944, 1.005868962122179, 0.5268880519480582, 0.526868958152648, 1.006027236858523, 0.5271499176083428, 0.5270211774607726, 0.527008823029553, 0.5270035221957945, 0.5269991302386242, 0.5269813749942398, 0.5269377333087719, 0.526919238800399, 0.526883475719795, 0.8809376922426543, 0.8809375665755903, 0.46144881804695476, 0.46144706187845813, 0.4614463569096183, 0.4614459487767765, 0.4614456007408195, 0.4614452864550556, 0.46144437080020767, 0.4614441783178144, 0.4614441541568504, 0.4614437678552764, 0.4614429852348056, 0.4614395421539203, 0.4614393439130334, 0.46144638205108357, 0.4614448155444826, 0.46144603933607364, 0.46144750438527005, 0.4614468450191592, 0.46144992461651463, 0.8809405416151073, 0.4614481054147566, 0.46144927304023764, 0.4614506806833178, 0.4614506650529429, 0.4614494132526157, 0.46145168050368196, 0.46144169763412984, 0.4614476829859943, 0.8809523787187917, 0.004959034543916584, 0.004959034547411502, 0.0049590345537615125, 0.004959034547030616, 0.004959034550371081, 0.004959034549123741, 0.0049590345532233215, 0.004959034547363367, 0.004959034551566449, 0.004959034547905481, 0.004959034553763908, 0.004959034546649875, 0.004959034544348526, 0.004959034539971249, 0.004959034540008412, 0.004959034545078309, 0.004959034545207583, 0.004959034549405994, 0.004959034543458927, 0.004959034540749135, 0.004959034548698984, 0.004959034539456682, 0.004959034543007488, 0.004959034544997509, 0.004959034548151314, 0.004959034547388171, 0.004959034544372228, 0.004959034550403364, 0.004959034546615559, 0.004959034543641538, 0.004966810169911943, 0.004966786864230661, 0.0049665108103288955, 0.004966496390070383, 0.00498945241614704, 0.004985539469800395, 0.004983852629118629, 0.004983235184871802, 0.0049814249921221986, 0.004981236722552121, 0.004980617072422909, 0.004978578819194133, 0.004978152908806858, 0.004977304598690901, 0.004977258095608432, 0.00497687082439354, 0.004975936225304737, 0.004975645426199133, 0.0049752182887029895, 0.0049745812822220925, 0.004973643072156108, 0.004973629622766573, 0.0049735151147604515, 0.004973028073518027, 0.004972890093880986, 0.004972553737600001, 0.004972517220387785, 0.0049722964003425995, 0.004972025946047109, 0.004971475960366546, 0.004971222896378108, 0.004971055862721482, 0.004970268682310358, 0.004969732101980659], \"Category\": [\"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Default\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic1\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic2\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic3\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic4\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic5\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic6\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic7\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic8\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic9\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\", \"Topic10\"], \"loglift\": [30.0, 29.0, 28.0, 27.0, 26.0, 25.0, 24.0, 23.0, 22.0, 21.0, 20.0, 19.0, 18.0, 17.0, 16.0, 15.0, 14.0, 13.0, 12.0, 11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 1.1235, 1.1235, 1.0986, 1.0589, 1.0589, 1.0589, 0.9857, 0.9857, 0.9857, 0.9857, 0.9856, 0.9856, 0.9856, 0.9856, 0.9856, 0.9856, 0.9412, 0.9256, 0.9011, 0.8632, 0.8632, 0.858, 0.819, 0.819, 0.8042, 0.8042, 0.8042, 0.8042, 0.8042, 0.8042, 0.7975, 0.7974, 0.7974, 0.7787, 0.7008, 0.6993, 0.5559, 0.6742, 0.1675, 0.5406, 0.6112, 0.4265, 0.2844, 0.2774, -0.0312, 0.5228, 0.0804, 0.429, -0.0371, 0.2344, 0.2155, 0.1913, 0.0054, 0.1861, -0.1058, 1.7107, 1.5852, 1.5852, 1.5852, 1.5852, 1.5852, 1.585, 1.4448, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3849, 1.3528, 1.3611, 1.304, 1.2975, 1.2838, 1.2442, 1.2442, 0.9423, 1.014, 0.5737, 0.702, 0.6999, 0.682, 0.4738, 0.892, 0.5831, 0.3945, 0.2131, 0.1261, 0.0157, -0.2012, 0.0306, 1.8549, 1.8549, 1.8549, 1.8549, 1.8549, 1.7712, 1.7712, 1.7712, 1.7712, 1.5673, 1.5673, 1.5673, 1.5673, 1.5673, 1.5673, 1.5673, 1.5673, 1.5673, 1.5673, 1.5673, 1.5673, 1.5672, 1.5672, 1.5672, 1.5672, 1.5672, 1.5672, 1.5672, 1.5672, 1.5672, 1.4863, 1.4962, 1.4589, 1.3936, 1.4593, 1.1255, 1.2651, 1.195, 1.195, 1.1167, 0.9648, 0.6089, 0.8135, 0.79, 0.5233, 0.3488, 0.3963, 0.185, -0.0259, -1.392, 0.4926, 1.9078, 1.9078, 1.9078, 1.9078, 1.9078, 1.9078, 1.9078, 1.9078, 1.9078, 1.9078, 1.9078, 1.9078, 1.9078, 1.9078, 1.8518, 1.7696, 1.6955, 1.6955, 1.6955, 1.6955, 1.6955, 1.6955, 1.6955, 1.6955, 1.6955, 1.6955, 1.6955, 1.6954, 1.6954, 1.6954, 1.5495, 1.5919, 1.5919, 1.5857, 1.5508, 1.283, 1.3148, 1.2881, 1.288, 0.9802, 0.7418, 0.2604, 0.8183, 0.6629, 0.1904, 0.4476, 0.5808, -0.1396, 2.0142, 2.0141, 1.938, 1.823, 1.7972, 1.7972, 1.7971, 1.7971, 1.7971, 1.7971, 1.7971, 1.7971, 1.7971, 1.7971, 1.7971, 1.7971, 1.7971, 1.7971, 1.7971, 1.7971, 1.7971, 1.7971, 1.797, 1.797, 1.797, 1.7969, 1.7969, 1.7969, 1.7969, 1.7969, 1.7072, 1.6928, 1.6508, 1.3772, 1.4499, 1.1383, 1.0662, 1.1971, 0.9179, -0.2028, 0.7363, 0.6221, 0.4803, 0.3697, 0.0151, 0.5629, -0.3704, 1.0325, 0.5283, 0.0633, -0.4878, 1.0604, 1.2825, 0.9777, 1.8494, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.8259, 1.6799, 1.5183, 1.5536, 1.4143, 0.9754, 1.0663, 1.3316, 1.2798, 0.7792, 0.707, 0.5035, 0.3999, -0.8412, -0.6696, 0.2626, -0.136, 0.5586, 0.006, 1.0901, 0.2881, 0.9741, -0.1355, 1.3119, 0.8724, 0.3015, 0.5336, 1.0133, 0.0836, 2.601, 2.3417, 2.3417, 2.3417, 2.3417, 2.3417, 2.3417, 2.3417, 2.3417, 2.3417, 2.3417, 2.3417, 2.3417, 2.3417, 2.3417, 2.3416, 2.3416, 2.3416, 2.2225, 1.8646, 1.8334, 1.8243, 1.7734, 1.7338, 1.7322, 1.7179, 1.6309, 1.6302, 1.485, 1.4767, 1.3913, 1.0809, 1.0779, 1.0386, 0.6926, -0.4553, 0.1398, 1.0615, 0.6487, 1.0714, -0.2838, 0.2501, 1.4762, 0.7206, 1.4549, 2.5152, 2.5152, 2.5152, 2.5152, 2.5152, 2.5152, 2.5152, 2.5152, 2.5152, 2.5152, 2.5152, 2.5152, 2.5152, 2.5152, 2.2986, 2.0205, 2.0196, 1.8655, 1.7554, 1.5999, 1.5576, 1.5576, 1.5575, 1.4436, 1.4185, 1.3719, 1.0451, 1.022, 0.8323, 0.6316, -0.3299, 0.5867, 0.1715, 0.542, -0.1582, 0.5599, 0.6052, 0.572, 0.0539, 0.5951, 2.981, 2.981, 2.6811, 2.6811, 2.6811, 2.6811, 2.6811, 2.6811, 2.6811, 2.6811, 2.6811, 2.6811, 2.6811, 2.6811, 2.1627, 1.8651, 1.823, 1.6878, 1.6878, 1.5521, 1.4925, 1.1839, 1.1538, 1.1386, 1.1358, 1.0904, 0.7403, 0.7038, 0.6823, 0.6654, -0.2214, 0.7951, 0.7951, 0.7951, 0.7951, 0.7951, 0.7951, 0.7951, 0.7951, 0.7951, 0.7951, 0.7951, 0.795, 0.738, 0.738, 0.738, 0.738, 0.738, 0.738, 0.738, 0.738, 0.738, 0.738, 0.738, 0.738, 0.738, 0.738, 0.6898, 0.6898, 0.6898, 0.6898, 0.5617, 0.5617, 0.5616, 0.5616, -2.7479, -0.7397, -1.5075, -1.1675, -1.2311, -1.6016, -0.7766, -0.777, -0.5838, -1.2001, -0.629, -0.9038, -0.6694, -0.5401, -0.2292, -0.3556, -0.0601, -1.2125, -1.9329, -1.4062, -0.578, -0.0288, -0.4954, -1.1885, -1.1307, -0.7811, -1.203, -0.1734, -1.2154, -0.7935], \"Term\": [\"use\", \"shopifi\", \"host\", \"want\", \"just\", \"theme\", \"re\", \"platform\", \"way\", \"set\", \"site\", \"drupal\", \"also\", \"m\", \"store\", \"d\", \"add\", \"work\", \"one\", \"websit\", \"merchant\", \"know\", \"woocommerc\", \"look\", \"product\", \"go\", \"ecommerc\", \"can\", \"list\", \"integr\", \"busi\", \"magento\", \"solut\", \"templat\", \"without\", \"servic\", \"apo\", \"fpo\", \"intern\", \"address\", \"fba\", \"fulfil\", \"monthli\", \"fee\", \"open\", \"variou\", \"instal\", \"shop\", \"list\", \"thing\", \"offer\", \"abl\", \"automat\", \"autom\", \"saw\", \"bookkeep\", \"horribl\", \"practic\", \"quickbook\", \"gt\", \"allow\", \"pay\", \"small\", \"requir\", \"ecommerc\", \"onlin\", \"use\", \"ship\", \"shopifi\", \"platform\", \"go\", \"store\", \"theme\", \"app\", \"s\", \"order\", \"just\", \"tri\", \"can\", \"like\", \"want\", \"will\", \"help\", \"way\", \"t\", \"market\", \"head\", \"critic\", \"plug\", \"valid\", \"page\", \"target\", \"m\", \"perhap\", \"brief\", \"flow\", \"confus\", \"rather\", \"alreadi\", \"within\", \"wrap\", \"channel\", \"guess\", \"wee\", \"around\", \"fli\", \"immedi\", \"sinc\", \"mother\", \"pm\", \"issu\", \"florist\", \"mom\", \"otherwis\", \"brain\", \"drupal\", \"post\", \"pleas\", \"card\", \"manag\", \"po\", \"cart\", \"s\", \"help\", \"shopifi\", \"will\", \"also\", \"look\", \"can\", \"payment\", \"need\", \"websit\", \"app\", \"theme\", \"t\", \"way\", \"make\", \"break\", \"20\", \"10\", \"price\", \"pack\", \"anoth\", \"unit\", \"singl\", \"11\", \"still\", \"messi\", \"difficult\", \"experi\", \"instead\", \"term\", \"mayb\", \"encourag\", \"variant\", \"sold\", \"2\", \"basket\", \"locat\", \"1\", \"chang\", \"40\", \"fd\", \"either\", \"rel\", \"solv\", \"weight\", \"set\", \"quantiti\", \"may\", \"want\", \"someon\", \"make\", \"buy\", \"base\", \"peopl\", \"one\", \"ship\", \"app\", \"order\", \"add\", \"d\", \"use\", \"way\", \"t\", \"can\", \"shopifi\", \"work\", \"detect\", \"com\", \"inform\", \"phish\", \"resolv\", \"reason\", \"see\", \"redirect\", \"contact\", \"person\", \"domain\", \"fals\", \"case\", \"bluedotvapor\", \"merchant\", \"account\", \"ssl\", \"weebli\", \"packag\", \"comparison\", \"video\", \"complic\", \"http\", \"volus\", \"anti\", \"handl\", \"typic\", \"gun\", \"ammunit\", \"interest\", \"payment\", \"get\", \"chrome\", \"setup\", \"take\", \"site\", \"think\", \"run\", \"actual\", \"re\", \"can\", \"shopifi\", \"tri\", \"websit\", \"just\", \"use\", \"will\", \"s\", \"wordpress\", \"depend\", \"woocommerc\", \"probabl\", \"bet\", \"fastest\", \"begin\", \"creat\", \"end\", \"method\", \"easiest\", \"learn\", \"strictli\", \"plan\", \"first\", \"world\", \"agenc\", \"full\", \"time\", \"local\", \"amp\", \"themeforest\", \"customiz\", \"accomplish\", \"repli\", \"suit\", \"guy\", \"wander\", \"find\", \"endless\", \"sell\", \"recommend\", \"item\", \"d\", \"buy\", \"websit\", \"re\", \"easi\", \"don\", \"shopifi\", \"platform\", \"store\", \"theme\", \"t\", \"way\", \"good\", \"just\", \"secur\", \"onlin\", \"like\", \"can\", \"dev\", \"freelanc\", \"hire\", \"built\", \"larg\", \"stori\", \"respons\", \"download\", \"mobil\", \"r\", \"power\", \"rick\", \"solid\", \"outta\", \"worth\", \"terribl\", \"away\", \"clean\", \"owen\", \"everyth\", \"tictail\", \"digit\", \"frustrat\", \"hope\", \"cheap\", \"heard\", \"client\", \"convinc\", \"cartel\", \"spree\", \"friendli\", \"nightmar\", \"migrat\", \"chipotl\", \"might\", \"commerc\", \"free\", \"support\", \"just\", \"look\", \"though\", \"e\", \"websit\", \"re\", \"app\", \"t\", \"shopifi\", \"s\", \"list\", \"theme\", \"onlin\", \"store\", \"recent\", \"tri\", \"featur\", \"help\", \"whatev\", \"check\", \"don\", \"know\", \"much\", \"site\", \"button\", \"feedback\", \"review\", \"appreci\", \"everybodi\", \"triumphant\", \"show\", \"alway\", \"launch\", \"rang\", \"format\", \"win\", \"isn\", \"ad\", \"customis\", \"tuesday\", \"releas\", \"api\", \"wholesal\", \"option\", \"owner\", \"modul\", \"edit\", \"drupal\", \"product\", \"one\", \"specif\", \"limit\", \"post\", \"dev\", \"add\", \"also\", \"way\", \"store\", \"just\", \"shopifi\", \"t\", \"quantiti\", \"list\", \"though\", \"s\", \"theme\", \"recent\", \"make\", \"differ\", \"solo\", \"fan\", \"updat\", \"comput\", \"usual\", \"self\", \"project\", \"huge\", \"done\", \"idea\", \"100\", \"exampl\", \"fulli\", \"purchas\", \"host\", \"great\", \"custom\", \"work\", \"limit\", \"plugin\", \"small\", \"pay\", \"allow\", \"woocommerc\", \"free\", \"better\", \"know\", \"theme\", \"need\", \"platform\", \"shopifi\", \"want\", \"just\", \"look\", \"s\", \"also\", \"like\", \"re\", \"can\", \"site\", \"tour\", \"book\", \"transfer\", \"quit\", \"agent\", \"regard\", \"bookthatapp\", \"awar\", \"owe\", \"money\", \"now\", \"report\", \"reconcil\", \"folk\", \"function\", \"specif\", \"built\", \"autom\", \"automat\", \"merchant\", \"check\", \"use\", \"know\", \"integr\", \"m\", \"go\", \"platform\", \"site\", \"ecommerc\", \"way\", \"shopifi\", \"transfer\", \"quit\", \"agent\", \"regard\", \"bookthatapp\", \"awar\", \"owe\", \"money\", \"now\", \"report\", \"reconcil\", \"folk\", \"solo\", \"fan\", \"updat\", \"comput\", \"usual\", \"project\", \"self\", \"huge\", \"done\", \"idea\", \"100\", \"fulli\", \"exampl\", \"purchas\", \"show\", \"everybodi\", \"format\", \"isn\", \"ye\", \"digit\", \"client\", \"tictail\", \"shopifi\", \"instal\", \"t\", \"like\", \"look\", \"just\", \"busi\", \"magento\", \"solut\", \"ecommerc\", \"e\", \"add\", \"good\", \"thing\", \"might\", \"free\", \"built\", \"will\", \"s\", \"app\", \"though\", \"monthli\", \"support\", \"want\", \"websit\", \"commerc\", \"re\", \"recent\", \"also\", \"go\"], \"Total\": [8.0, 35.0, 3.0, 7.0, 11.0, 9.0, 7.0, 7.0, 7.0, 6.0, 7.0, 3.0, 7.0, 4.0, 7.0, 7.0, 5.0, 3.0, 4.0, 6.0, 3.0, 4.0, 3.0, 7.0, 3.0, 4.0, 7.0, 12.0, 6.0, 4.0, 4.894885071131263, 4.894904496893839, 4.034417958456294, 3.174289380384063, 3.1741344465067747, 3.1741397537491545, 2.313778509821855, 2.3137749074492455, 2.313775666749038, 2.3137715684575726, 2.313772371700919, 2.3137704744986833, 2.3135221485680773, 2.313586149421367, 2.3135759035925245, 2.3136986508720017, 4.722042182925222, 4.796920166954597, 6.11474902685092, 3.859777505717846, 3.8600261700695215, 3.880191758763479, 2.7332962368047213, 2.733259549788086, 1.453260188788382, 1.453260188680659, 1.453260188464152, 1.453260187923025, 1.4532601876790885, 1.4532528616354703, 2.7926991568196877, 2.7925404883814973, 2.7924945714357614, 2.8455006541089225, 7.4705207617263305, 4.5477320080332415, 8.63613713938492, 4.663981079901217, 35.208200711952294, 7.04981110055239, 4.967237031763515, 7.9028667810495685, 9.108257777335801, 9.172609257149247, 15.534127301423124, 5.426195548002716, 11.170958256816645, 5.9599351674918335, 12.562380153407318, 7.239490047505964, 7.3772340148366435, 7.558663059643621, 9.103586601553374, 7.598186977900796, 10.17302401639763, 3.6414077241155094, 2.117113849992513, 2.117113849656163, 2.11711384946134, 2.1171138480416793, 2.117113846176506, 2.1170861205529787, 4.746738104952506, 1.3549154963975227, 1.3549154963811447, 1.3549154963155645, 1.3549154962896623, 1.3549154963418233, 1.3549154963806918, 1.3549154962765935, 1.3549154962363563, 1.3549154962550995, 1.3549154962764984, 1.354915496173616, 1.354915496107843, 1.3549154961482952, 1.3549154960401262, 1.3549154960696683, 1.35491549621667, 1.3549154961237218, 1.3549154960070482, 1.3549154959729761, 1.3549154958954155, 1.3549154959044825, 1.3549154958003913, 3.94313629952277, 2.6490255939393084, 2.804730131512017, 2.823166975204382, 2.8619486953804794, 2.977577084600958, 2.977647976407398, 15.534127301423124, 9.103586601553374, 35.208200711952294, 7.558663059643621, 7.575452846407162, 7.712223548600002, 12.562380153407318, 4.2353669709208255, 5.767898075223483, 6.962120345433492, 9.172609257149247, 9.108257777335801, 10.17302401639763, 7.598186977900796, 5.689577689044784, 2.8272607765030577, 2.8272493632458056, 2.8272051237561153, 2.827208012796501, 2.827232917560195, 2.0824046805785845, 2.082383698103587, 2.082392414131315, 2.0823964383972733, 1.3375660311567006, 1.337566874039838, 1.3375583887611007, 1.3375569347599172, 1.3375567615039299, 1.3375575264879214, 1.3375579932550563, 1.337563886712015, 1.3375618102012472, 1.3375600920167834, 1.3375547388224394, 1.337551825869518, 1.3375578041167682, 1.3375544543105953, 1.337550813621831, 1.3375546064268329, 1.3375582794766538, 1.337558012724641, 1.337558381176454, 1.3375567174258503, 1.3375634110558525, 6.723830165754832, 4.04674080598675, 4.200657075814691, 7.3772340148366435, 2.84457830205154, 5.689577689044784, 3.454080747739059, 3.7050625269760924, 3.705128475029122, 4.006710570093732, 4.663981079901217, 9.172609257149247, 5.426195548002716, 5.554655105933841, 7.252753707123788, 8.63613713938492, 7.598186977900796, 10.17302401639763, 12.562380153407318, 35.208200711952294, 3.918154745667202, 2.0049178913810937, 2.004919868311882, 2.004921788792074, 2.0049225585942114, 2.0049233400724735, 2.0049239420209792, 2.0049246582718183, 2.0049247324390214, 2.0049248426075272, 2.0049266557857868, 2.0049283923963657, 2.004928686964878, 2.004930882288023, 2.004932172484085, 3.1304840255621613, 3.3985931143236603, 1.2987978699425708, 1.2987990655155477, 1.2987992287021548, 1.2987992455177204, 1.2987994167459165, 1.298799548830947, 1.298799986899422, 1.2988003625676765, 1.2988006230415168, 1.2988006367458145, 1.298800734465267, 1.2988014627265076, 1.2988019852976425, 1.2988021065305397, 4.2353669709208255, 2.7497658925366024, 2.7497707203013344, 2.7670624638660914, 2.865419066119681, 7.311721635279379, 3.6276564051018343, 3.7258660660923755, 3.725965924225642, 7.4832487204097475, 12.562380153407318, 35.208200711952294, 5.9599351674918335, 6.962120345433492, 11.170958256816645, 8.63613713938492, 7.558663059643621, 15.534127301423124, 1.9644114969649, 1.9644813947997024, 3.1293021512546426, 3.5106793093973017, 1.2785541463471906, 1.2785541460178256, 1.2785371372381051, 1.2785371466167754, 1.2785354365706851, 1.2785343467696078, 1.2785349219835815, 1.2785330826278098, 1.2785334594403936, 1.2785334127600119, 1.278532846424535, 1.2785331833306335, 1.2785322851797762, 1.2785318543640454, 1.2785318937844339, 1.2785292382016662, 1.278527621047575, 1.2785279158772693, 1.2785864831274436, 1.2785918054398449, 1.2785929204098918, 1.2785944288519435, 1.2785947317911863, 1.2785954017575403, 1.278596142128438, 1.2785964461419632, 2.670517505534907, 2.7091682002833624, 2.825005004252146, 7.252753707123788, 3.454080747739059, 6.962120345433492, 7.4832487204097475, 4.447611367316841, 5.87996876045442, 35.208200711952294, 7.04981110055239, 7.9028667810495685, 9.108257777335801, 10.17302401639763, 7.598186977900796, 4.393099613299143, 11.170958256816645, 2.7468103771434125, 4.5477320080332415, 7.239490047505964, 12.562380153407318, 2.670957049857553, 2.139034498743364, 2.901163565575036, 2.3874443718152625, 1.280349567142796, 1.2803301026485254, 1.280350043283003, 1.2803504560568821, 1.2803369761898409, 1.280340073056089, 1.2803264447433438, 1.2803350951450427, 1.2803207087312907, 1.2803254719884833, 1.280333487902172, 1.2803305865913204, 1.2803431306277855, 1.2803281898058778, 1.2803430500314972, 1.2803290818129516, 1.2803152475555442, 1.280314979211883, 1.280324806716537, 1.2803363080398793, 1.2803333657579443, 1.2803214890711048, 1.2803172205405924, 1.2803413207495318, 1.2803481652403574, 1.280324658767843, 1.2803481965345542, 1.280345748066448, 1.2803166824398702, 1.2803275384109594, 2.828387283838032, 4.90801105251534, 3.209070341561892, 3.6889648974692104, 11.170958256816645, 7.712223548600002, 4.006862988889899, 4.220262673632572, 6.962120345433492, 7.4832487204097475, 9.172609257149247, 10.17302401639763, 35.208200711952294, 15.534127301423124, 6.11474902685092, 9.108257777335801, 4.5477320080332415, 7.9028667810495685, 2.6726438652108393, 5.9599351674918335, 3.0012896800317495, 9.103586601553374, 2.1408302124060783, 3.3225367352093107, 5.87996876045442, 4.6619741592551955, 2.8856784550444017, 7.311721635279379, 1.656543882194908, 1.1246252876094158, 1.1246257201364047, 1.1246257292827053, 1.1246226091383336, 1.124627759555986, 1.1246224258353084, 1.1246291813898175, 1.1246292945668095, 1.1246249734416607, 1.1246241329381441, 1.1246306630441318, 1.124624647850376, 1.1246259223263693, 1.1246297790494655, 1.1246358565329473, 1.1246376544664662, 1.1246338696607163, 2.418720024019102, 1.8122487509835619, 1.8695165231786084, 1.8868218913658041, 1.9851552445091378, 3.94313629952277, 3.9495240547786143, 4.006710570093732, 2.2891276721416434, 2.2911940341202555, 2.6490255939393084, 2.670957049857553, 5.554655105933841, 7.575452846407162, 7.598186977900796, 7.9028667810495685, 11.170958256816645, 35.208200711952294, 10.17302401639763, 4.04674080598675, 6.11474902685092, 4.006862988889899, 15.534127301423124, 9.108257777335801, 2.6726438652108393, 5.689577689044784, 2.7299906427765244, 1.0716689508393809, 1.0716702423120614, 1.0716702723123945, 1.0716708381480982, 1.0716708990363706, 1.071672743368398, 1.0716723546475642, 1.0716730934980527, 1.0716737391481568, 1.071674145722257, 1.0716762430348123, 1.0716796466983527, 1.0716796090585006, 1.0716801934384421, 3.750526725653832, 1.7575504559898607, 1.759267707505787, 3.918154745667202, 2.2911940341202555, 2.6769217667323337, 2.7924945714357614, 2.7925404883814973, 2.7926991568196877, 3.1293021512546426, 3.209070341561892, 3.362812614748415, 4.6619741592551955, 9.108257777335801, 5.767898075223483, 7.04981110055239, 35.208200711952294, 7.3772340148366435, 11.170958256816645, 7.712223548600002, 15.534127301423124, 7.575452846407162, 7.239490047505964, 7.4832487204097475, 12.562380153407318, 7.311721635279379, 1.4317541337988395, 1.4317542360734439, 1.0122318729814126, 1.0122333074480963, 1.0122338831868958, 1.0122342168017902, 1.0122345009669549, 1.0122347577540225, 1.0122355056612276, 1.0122356630119704, 1.0122356826531662, 1.0122359982315612, 1.0122366374726839, 1.0122394502187584, 1.6998531522833715, 2.2891276721416434, 2.3874443718152625, 2.733259549788086, 2.7332962368047213, 3.1304840255621613, 3.3225367352093107, 8.63613713938492, 4.6619741592551955, 4.733496103709703, 4.746738104952506, 4.967237031763515, 7.04981110055239, 7.311721635279379, 7.4705207617263305, 7.598186977900796, 35.208200711952294, 1.0122318729814126, 1.0122333074480963, 1.0122338831868958, 1.0122342168017902, 1.0122345009669549, 1.0122347577540225, 1.0122355056612276, 1.0122356630119704, 1.0122356826531662, 1.0122359982315612, 1.0122366374726839, 1.0122394502187584, 1.0716689508393809, 1.0716702423120614, 1.0716702723123945, 1.0716708381480982, 1.0716708990363706, 1.0716723546475642, 1.071672743368398, 1.0716730934980527, 1.0716737391481568, 1.071674145722257, 1.0716762430348123, 1.0716796090585006, 1.0716796466983527, 1.0716801934384421, 1.1246224258353084, 1.1246226091383336, 1.1246241329381441, 1.124624647850376, 1.2803079325189877, 1.280314979211883, 1.2803172205405924, 1.2803152475555442, 35.208200711952294, 4.722042182925222, 10.17302401639763, 7.239490047505964, 7.712223548600002, 11.170958256816645, 4.894885071131263, 4.894904496893839, 4.034417958456294, 7.4705207617263305, 4.220262673632572, 5.554655105933841, 4.393099613299143, 3.859777505717846, 2.828387283838032, 3.209070341561892, 2.3874443718152625, 7.558663059643621, 15.534127301423124, 9.172609257149247, 4.006862988889899, 2.3135221485680773, 3.6889648974692104, 7.3772340148366435, 6.962120345433492, 4.90801105251534, 7.4832487204097475, 2.6726438652108393, 7.575452846407162, 4.967237031763515], \"logprob\": [30.0, 29.0, 28.0, 27.0, 26.0, 25.0, 24.0, 23.0, 22.0, 21.0, 20.0, 19.0, 18.0, 17.0, 16.0, 15.0, 14.0, 13.0, 12.0, 11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, -4.3556, -4.3556, -4.5739, -4.8533, -4.8534, -4.8534, -5.2428, -5.2428, -5.2428, -5.2428, -5.2428, -5.2428, -5.2429, -5.2429, -5.2429, -5.2429, -4.5739, -4.5738, -4.3555, -4.8535, -4.8534, -4.8534, -5.2428, -5.2428, -5.8893, -5.8893, -5.8893, -5.8893, -5.8893, -5.8893, -5.2428, -5.2429, -5.243, -5.2429, -4.3555, -4.8533, -4.3555, -4.8533, -3.3385, -4.5737, -4.8532, -4.5736, -4.5738, -4.5737, -4.3555, -4.8533, -4.5736, -4.8532, -4.5737, -4.8534, -4.8534, -4.8533, -4.8532, -4.8533, -4.8533, -4.0643, -4.732, -4.732, -4.732, -4.732, -4.732, -4.7323, -4.0651, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -5.3786, -4.3426, -4.732, -4.732, -4.732, -4.732, -4.732, -4.732, -3.382, -3.8447, -2.9324, -4.3426, -4.3425, -4.3425, -4.0628, -4.7319, -4.7319, -4.7324, -4.638, -4.732, -4.7319, -5.2407, -5.2981, -4.1731, -4.1731, -4.1732, -4.1732, -4.1732, -4.5626, -4.5626, -4.5626, -4.5626, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -5.2092, -3.6753, -4.1732, -4.1732, -3.6753, -4.5626, -4.2032, -4.5626, -4.5626, -4.5626, -4.5626, -4.5626, -4.2422, -4.5626, -4.5626, -4.5626, -4.5626, -4.6431, -4.5626, -4.5626, -4.898, -5.2091, -4.4639, -4.4639, -4.4639, -4.4639, -4.4639, -4.4639, -4.4639, -4.4639, -4.4639, -4.4639, -4.4639, -4.4639, -4.4639, -4.4639, -4.0743, -4.0743, -5.1104, -5.1104, -5.1104, -5.1104, -5.1104, -5.1104, -5.1104, -5.1104, -5.1104, -5.1104, -5.1104, -5.1104, -5.1104, -5.1104, -4.0743, -4.4639, -4.4639, -4.4638, -4.4638, -3.7948, -4.4639, -4.4639, -4.4639, -4.0744, -3.7948, -3.2457, -4.4639, -4.4639, -4.4636, -4.4638, -4.4638, -4.4639, -4.3779, -4.378, -3.9885, -3.9885, -5.0244, -5.0244, -5.0245, -5.0245, -5.0245, -5.0245, -5.0245, -5.0245, -5.0245, -5.0245, -5.0245, -5.0245, -5.0245, -5.0245, -5.0245, -5.0245, -5.0245, -5.0245, -5.0246, -5.0246, -5.0246, -5.0246, -5.0246, -5.0246, -5.0246, -5.0246, -4.3779, -4.3779, -4.378, -3.7088, -4.3779, -3.9885, -3.9885, -4.3779, -4.3779, -3.7088, -4.378, -4.378, -4.3778, -4.3779, -5.0243, -5.0244, -5.0244, -5.0244, -5.0244, -5.0244, -5.0244, -5.0245, -5.0245, -5.0245, -4.3477, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.9943, -4.3477, -3.9581, -4.3477, -4.3476, -3.6786, -3.9582, -4.3477, -4.3477, -4.3476, -4.3477, -4.3476, -4.3477, -4.3473, -4.9939, -4.9941, -4.9941, -4.9941, -4.9941, -4.9941, -4.9941, -4.9942, -4.9942, -4.9942, -4.9942, -4.9942, -4.9943, -4.9943, -4.9943, -3.9616, -4.6082, -4.6082, -4.6082, -4.6082, -4.6082, -4.6082, -4.6082, -4.6082, -4.6082, -4.6082, -4.6082, -4.6082, -4.6082, -4.6082, -4.6082, -4.6082, -4.6082, -3.9615, -4.6081, -4.6082, -4.6081, -4.6082, -3.9616, -3.9615, -3.9614, -4.6082, -4.6081, -4.6082, -4.6081, -3.9614, -3.9615, -3.9615, -3.9615, -3.9614, -3.9614, -4.6078, -4.6079, -4.6079, -4.608, -4.6081, -4.6081, -4.6081, -4.6081, -4.6081, -4.4829, -4.4829, -4.4829, -4.4829, -4.4829, -4.4829, -4.4829, -4.4829, -4.4829, -4.4829, -4.4829, -4.4829, -4.4829, -4.4829, -3.4468, -4.4829, -4.4829, -3.8362, -4.4828, -4.4827, -4.4828, -4.4828, -4.4829, -4.4829, -4.4828, -4.4826, -4.4828, -3.8361, -4.4827, -4.4828, -3.836, -4.4822, -4.4825, -4.4825, -4.4825, -4.4825, -4.4825, -4.4826, -4.4827, -4.4827, -3.7274, -3.7274, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -3.7274, -4.3741, -4.3741, -4.3741, -4.3741, -4.3741, -4.374, -4.3741, -4.3741, -3.7274, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2601, -6.2585, -6.2585, -6.2586, -6.2586, -6.254, -6.2548, -6.2551, -6.2552, -6.2556, -6.2556, -6.2558, -6.2562, -6.2563, -6.2564, -6.2564, -6.2565, -6.2567, -6.2568, -6.2568, -6.257, -6.2572, -6.2572, -6.2572, -6.2573, -6.2573, -6.2574, -6.2574, -6.2574, -6.2575, -6.2576, -6.2577, -6.2577, -6.2578, -6.258]}, \"lambda.step\": 0.01, \"R\": 30, \"mdsDat\": {\"Freq\": [29.144695756228856, 15.4909865280969, 12.776288158591488, 10.973308074757544, 9.781089213223183, 9.51441373565418, 5.001704977984471, 3.9741457032085767, 3.1221458493709777, 0.22122200288382296], \"cluster\": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], \"y\": [0.07025220854665133, -0.16845490612606773, -0.03999475677367679, 0.015219800283150288, 0.08062440310464401, 0.06563003245605419, -0.030149730809865622, 0.006330527126288326, 0.003868737251215812, -0.003326315058393779], \"x\": [-0.006399944899094682, 0.06630967440042085, -0.1688067786268328, 0.15072919538850144, 0.005911280416437493, 0.004969029505486727, -0.05633326252068566, -0.00012435748345212758, 0.012014791904345125, -0.008269628085126561], \"topics\": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}, \"token.table\": {\"Freq\": [0.7476331126387088, 0.707412413480235, 0.9331176337063917, 0.9604319154230353, 0.7476329536093477, 0.707401344218153, 0.7476330276125457, 0.7731576650108719, 0.25771922167029065, 0.7821104403652835, 0.5884788007045708, 0.2942394003522854, 0.5367735617216238, 0.2683867808608119, 0.8891845547463715, 0.36005835859430246, 0.36005835859430246, 0.18002917929715123, 0.18002917929715123, 0.8643895651865314, 0.7821468504093259, 0.7161530432363471, 0.35807652161817355, 0.7380534082540519, 0.2640106196355703, 0.2640106196355703, 0.13200530981778516, 0.13200530981778516, 0.13200530981778516, 0.13200530981778516, 0.8891819779780206, 0.769940307544905, 0.7821497037198458, 0.9604281140226362, 0.7699411151021865, 0.8891782712374505, 0.8643869720070942, 0.4360809326836145, 0.21804046634180724, 0.21804046634180724, 0.10902023317090362, 0.8891847073762108, 0.7380534084026789, 0.7317270692990218, 0.7317172478670079, 0.7810406258122962, 0.26990097811281893, 0.26990097811281893, 0.5398019562256379, 0.7476345818225909, 0.7821438821559764, 0.7821334769880373, 0.29737012274019137, 0.29737012274019137, 0.29737012274019137, 0.29737012274019137, 0.4987699901892506, 0.6984438912801677, 0.6881080262081968, 0.7380534085701548, 0.7073984885376339, 0.738053408253805, 0.4188579268297937, 0.81717955414131, 0.6036664713493781, 0.5790252591254973, 0.28951262956274865, 0.3184109978486101, 0.2388082483864576, 0.15920549892430505, 0.2388082483864576, 0.07960274946215253, 0.07960274946215253, 0.7084242687612237, 0.35421213438061183, 0.33583553459751925, 0.6716710691950385, 0.7810375545875616, 0.4987703111534708, 0.7476351476264231, 0.7380534083224648, 0.7810465826671713, 0.30097485135465407, 0.30097485135465407, 0.30097485135465407, 0.7810501375617683, 0.3636666841410017, 0.3636666841410017, 0.781049740185459, 0.7810564319190887, 0.498773051135449, 0.2037485224259027, 0.2037485224259027, 0.2037485224259027, 0.4074970448518054, 0.7699419317119987, 0.7699417519047514, 0.9331223398110291, 0.7380534083036376, 0.49877181366032597, 0.7810417298838597, 0.7821438764185838, 0.9446823090429534, 0.5684183229951719, 0.5684183229951719, 0.8891815054419043, 0.7821136960199857, 0.2757573303551675, 0.2757573303551675, 0.13787866517758374, 0.4136359955327512, 0.5090401989284096, 0.4987735429460141, 0.3743976340066314, 0.3743976340066314, 0.3743976340066314, 0.36630162181909703, 0.36630162181909703, 0.36630162181909703, 0.7476309134633289, 0.7810577992421559, 0.49877093056912747, 0.3401378615224878, 0.1700689307612439, 0.1700689307612439, 0.1700689307612439, 0.1700689307612439, 0.9331198138669253, 0.7810361571469405, 0.5072104660044483, 0.25360523300222415, 0.23695207557762146, 0.23695207557762146, 0.23695207557762146, 0.23695207557762146, 0.44967957737875863, 0.22483978868937932, 0.22483978868937932, 0.7821452373381801, 0.5354379068850426, 0.13385947672126064, 0.13385947672126064, 0.13385947672126064, 0.5037389407029809, 0.5037389407029809, 0.7476311236497127, 0.7476278403853959, 0.782144922539043, 0.7821076016732252, 0.8891871743234673, 0.7810491960270055, 0.9331146701169659, 0.7476317261810568, 0.4987708572886103, 0.9331228586160633, 0.7821334771895206, 0.8643892651072429, 0.747630974548092, 0.666380194256638, 0.333190097128319, 0.8644588404456883, 0.8891850565850886, 0.7821077876360022, 0.7821465070659214, 0.7380534083806436, 0.7380534084761439, 0.7380534082895281, 0.8891859695269418, 0.864388317792262, 0.3116167280749877, 0.3116167280749877, 0.3116167280749877, 0.46750064133490044, 0.46750064133490044, 0.7810375354974867, 0.7810518040063246, 0.8643899738729846, 0.7821471139625301, 0.9331147028900988, 0.5882861108659441, 0.3636673226306988, 0.3636673226306988, 0.6039574879991003, 0.20131916266636676, 0.20131916266636676, 0.4552594241080807, 0.22762971205404034, 0.22762971205404034, 0.22762971205404034, 0.5689737080332042, 0.5689737080332042, 0.6881114955277735, 0.7380534083108083, 0.7699406173294192, 0.782108650329802, 0.7699411069781512, 0.9446823088928697, 0.7810538279143602, 0.32954044722198833, 0.4393872629626511, 0.10984681574066278, 0.10984681574066278, 0.10984681574066278, 0.3446892866937653, 0.3446892866937653, 0.3446892866937653, 0.7810447877799717, 0.6881080263107113, 0.5332584317610318, 0.2666292158805159, 0.7699414922133343, 0.9331203760429365, 0.9331194598578731, 0.7380534084395657, 0.4987725733692986, 0.8470911196989923, 0.21177277992474808, 0.7476318230230575, 0.42252068158090883, 0.21126034079045442, 0.21126034079045442, 0.21126034079045442, 0.7699402356770709, 0.8643880341304189, 0.8891855624109026, 0.738053408457584, 0.35398167383591117, 0.35398167383591117, 0.35807134070697605, 0.08951783517674401, 0.08951783517674401, 0.08951783517674401, 0.26855350553023205, 0.08951783517674401, 0.08951783517674401, 0.42900280689662235, 0.21450140344831117, 0.21450140344831117, 0.21450140344831117, 0.7810366994004467, 0.8891818884952531, 0.7821463625678485, 0.41439382889040827, 0.13813127629680277, 0.13813127629680277, 0.13813127629680277, 0.13813127629680277, 0.13813127629680277, 0.13813127629680277, 0.4364536504146266, 0.4364536504146266, 0.4364536504146266, 0.6541560385283695, 0.16353900963209236, 0.16353900963209236, 0.7821487144138873, 0.7476312402515806, 0.1296642911993299, 0.2593285823986598, 0.1296642911993299, 0.1296642911993299, 0.2593285823986598, 0.1296642911993299, 0.6320129599882395, 0.2106709866627465, 0.8171763111084763, 0.17575996930764975, 0.17575996930764975, 0.3515199386152995, 0.17575996930764975, 0.17575996930764975, 0.6988245467950681, 0.34941227339753406, 0.8238572077859515, 0.4761159894519865, 0.23805799472599326, 0.23805799472599326, 0.7476311345322819, 0.638878839076921, 0.7476261706300421, 0.7821455892261612, 0.35355837077694385, 0.35355837077694385, 0.7810567601871147, 0.7810443801880216, 0.5299917308443645, 0.5299917308443645, 0.738053408518393, 0.8644827546768344, 0.7380534083433982, 0.3465389562901294, 0.3465389562901294, 0.3465389562901294, 0.3467467652715947, 0.3467467652715947, 0.17337338263579735, 0.17337338263579735, 0.17337338263579735, 0.7810390291139558, 0.7771968032916129, 0.25906560109720433, 0.24958129181180316, 0.4991625836236063, 0.24958129181180316, 0.6596694780388809, 0.21988982601296028, 0.21988982601296028, 0.864462668760682, 0.551800628615288, 0.551800628615288, 0.5528735508074798, 0.18429118360249325, 0.3685823672049865, 0.7380534085134539, 0.7810513981627596, 0.7810406749780064, 0.5348976527363181, 0.5348976527363181, 0.7074054590896358, 0.7699419416804439, 0.9446823105956192, 0.7161937341002212, 0.3580968670501106, 0.47221409944677667, 0.47221409944677667, 0.2698961741109774, 0.2698961741109774, 0.5397923482219548, 0.7380534082448836, 0.49877136259035476, 0.49877238186255357, 0.782146160608558, 0.56739108934232, 0.14184777233558, 0.14184777233558, 0.14184777233558, 0.713081083106491, 0.3565405415532455, 0.9446823091298857, 0.37356340122732856, 0.37356340122732856, 0.37356340122732856, 0.7380534083940292, 0.33584353035616393, 0.6716870607123279, 0.7549945929460966, 0.3774972964730483, 0.7810508047425838, 0.688108026566931, 0.7074116905963783, 0.28484515726720583, 0.5696903145344117, 0.2531950650585552, 0.2531950650585552, 0.2531950650585552, 0.2531950650585552, 0.9331210193705756, 0.9331141940689796, 0.4942248826614245, 0.24711244133071225, 0.24711244133071225, 0.6881080266824331, 0.7810424910102709, 0.8891853049819141, 0.7380534082752244, 0.13363180048694742, 0.26726360097389484, 0.26726360097389484, 0.13363180048694742, 0.13363180048694742, 0.498772037702334, 0.37416133627706966, 0.37416133627706966, 0.37416133627706966, 0.3691169857579925, 0.3691169857579925, 0.4987718410673127, 0.7476309177027821, 0.88917527883628, 0.7821097583423343, 0.70286400992809, 0.351432004964045, 0.498772187451243, 0.7810364089463028, 0.8891847146077283, 0.7810455276840748, 0.5367879479622749, 0.26839397398113746, 0.25749756792797424, 0.3862463518919613, 0.06437439198199356, 0.06437439198199356, 0.06437439198199356, 0.06437439198199356, 0.06437439198199356, 0.06437439198199356, 0.6881080261571908, 0.36405862170943354, 0.36405862170943354, 0.36405862170943354, 0.4987718595181369, 0.933120680905701, 0.3744592566524664, 0.3744592566524664, 0.9451379689430913, 0.29744951176581, 0.59489902353162, 0.148724755882905, 0.3613940823738462, 0.3613940823738462, 0.6432273091604265, 0.42881820610695104, 0.8338683698668817, 0.20846709246672043, 0.3408296861908738, 0.28402473849239485, 0.028402473849239482, 0.14201236924619742, 0.08520742154771845, 0.028402473849239482, 0.028402473849239482, 0.028402473849239482, 0.028402473849239482, 0.88918731925273, 0.7380534084234734, 0.960433771477368, 0.1367666946147069, 0.1367666946147069, 0.41030008384412064, 0.1367666946147069, 0.1367666946147069, 0.1367666946147069, 0.7162055104628905, 0.35810275523144525, 0.7476299614264001, 0.7810543039571163, 0.9331239831262756, 0.9914689160095194, 0.7476318476606483, 0.35154595648809855, 0.7030919129761971, 0.4368476307240776, 0.4368476307240776, 0.7810518942612404, 0.7699427471683621, 0.7476266417555624, 0.5061454420048779, 0.12653636050121947, 0.12653636050121947, 0.12653636050121947, 0.12653636050121947, 0.7810485732791669, 0.7821461320517133, 0.7821088356359452, 0.5421575036867623, 0.27107875184338115, 0.29489756390669863, 0.19659837593779908, 0.19659837593779908, 0.09829918796889954, 0.09829918796889954, 0.09829918796889954, 0.09829918796889954, 0.3489890926684553, 0.3489890926684553, 0.9446946822728232, 0.9450934179280859, 0.7476313954329428, 0.7810482780563287, 0.43916192292594675, 0.21958096146297337, 0.10979048073148669, 0.10979048073148669, 0.10979048073148669, 0.10979048073148669, 0.7821495233554163, 0.7772468738303755, 0.25908229127679183, 0.275660064882007, 0.275660064882007, 0.275660064882007, 0.2495717978809777, 0.2495717978809777, 0.2495717978809777, 0.2495717978809777, 0.7810576355387948, 0.7821470898469463, 0.6984439411721645, 0.5033611802295014, 0.16778706007650043, 0.16778706007650043, 0.16778706007650043, 0.8891831021446686, 0.8891767003435428, 0.7699410490491545, 0.9604377914701246, 0.9331228324942259, 0.463170041818591, 0.2315850209092955, 0.11579251045464775, 0.11579251045464775, 0.9331222867945599, 0.9446823097633559, 0.7476290010474669, 0.8644168069364725, 0.769941830206126, 0.7699412695135378, 0.7821082405156574, 0.40665647774851427, 0.542208636998019, 0.13555215924950476, 0.394831031234879, 0.13161034374495967, 0.13161034374495967, 0.13161034374495967, 0.13161034374495967, 0.28726880616360145, 0.14363440308180073, 0.28726880616360145, 0.14363440308180073, 0.7380534083668507, 0.7699420384192055, 0.7476281062522598, 0.46710850501128737, 0.46710850501128737, 0.4134418163613394, 0.4134418163613394, 0.39689558541341374, 0.2645970569422758, 0.1322985284711379, 0.1322985284711379, 0.8891808065175961, 0.7380534083107566, 0.9451395492404505, 0.6391201307288695, 0.31956006536443476, 0.5090583116343205, 0.25522218108047573, 0.25522218108047573, 0.25522218108047573, 0.25522218108047573, 0.7821463009626057, 0.7810465081550755, 0.7380534083326746, 0.7810620981098775], \"Topic\": [3, 3, 8, 3, 3, 3, 3, 1, 4, 5, 4, 6, 1, 4, 7, 1, 3, 6, 7, 1, 5, 1, 8, 2, 1, 2, 3, 6, 7, 8, 7, 4, 5, 3, 4, 7, 1, 1, 2, 3, 6, 7, 2, 1, 1, 6, 1, 2, 3, 3, 5, 5, 1, 3, 5, 8, 4, 9, 1, 2, 3, 2, 6, 1, 7, 3, 5, 1, 2, 3, 4, 5, 8, 2, 4, 1, 2, 6, 4, 3, 2, 6, 1, 2, 6, 6, 3, 4, 6, 6, 4, 1, 4, 5, 6, 4, 4, 8, 2, 4, 6, 5, 2, 6, 8, 7, 5, 1, 3, 4, 5, 5, 4, 1, 5, 7, 1, 3, 7, 3, 6, 4, 1, 2, 3, 5, 6, 8, 6, 2, 7, 1, 4, 5, 6, 1, 2, 5, 5, 1, 2, 4, 6, 1, 7, 3, 3, 5, 5, 7, 6, 8, 3, 4, 8, 5, 1, 3, 1, 6, 1, 7, 5, 5, 2, 2, 2, 7, 1, 2, 6, 8, 1, 5, 6, 6, 1, 5, 8, 6, 3, 4, 1, 5, 6, 1, 4, 5, 6, 5, 8, 1, 2, 4, 5, 4, 2, 6, 1, 2, 3, 5, 6, 1, 2, 5, 6, 1, 1, 8, 4, 8, 8, 2, 4, 1, 6, 3, 1, 2, 4, 7, 4, 1, 7, 2, 1, 5, 1, 3, 4, 5, 6, 7, 8, 1, 2, 6, 8, 6, 7, 5, 1, 2, 3, 4, 5, 6, 8, 6, 7, 8, 1, 6, 7, 5, 3, 1, 2, 3, 5, 6, 8, 2, 5, 1, 1, 2, 3, 4, 7, 2, 3, 2, 3, 5, 6, 3, 4, 3, 5, 1, 6, 6, 6, 2, 7, 2, 1, 2, 1, 3, 6, 1, 2, 3, 4, 8, 6, 1, 5, 1, 3, 7, 1, 5, 6, 1, 6, 7, 1, 2, 3, 2, 6, 6, 3, 7, 3, 4, 2, 1, 8, 2, 4, 1, 2, 3, 2, 4, 4, 5, 1, 3, 5, 8, 2, 6, 2, 1, 3, 8, 2, 1, 2, 2, 7, 6, 1, 3, 1, 5, 1, 3, 6, 7, 8, 8, 3, 6, 7, 1, 6, 7, 2, 1, 4, 5, 6, 8, 4, 1, 6, 7, 3, 5, 4, 3, 7, 5, 1, 7, 4, 6, 7, 6, 1, 4, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 4, 5, 4, 8, 4, 5, 1, 1, 3, 5, 2, 4, 1, 3, 1, 2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 7, 2, 3, 1, 2, 4, 5, 6, 8, 1, 8, 3, 6, 8, 1, 3, 2, 3, 3, 7, 6, 4, 3, 1, 3, 5, 6, 7, 6, 5, 5, 1, 6, 1, 2, 3, 4, 5, 6, 7, 1, 4, 2, 1, 3, 6, 1, 2, 5, 6, 7, 8, 5, 1, 5, 1, 2, 4, 2, 3, 6, 7, 6, 5, 9, 1, 4, 5, 6, 7, 7, 4, 3, 8, 1, 3, 4, 9, 8, 2, 3, 1, 4, 4, 5, 1, 3, 8, 1, 2, 3, 5, 7, 2, 4, 5, 6, 2, 4, 3, 1, 6, 2, 7, 1, 2, 4, 5, 7, 2, 1, 5, 8, 5, 1, 2, 3, 8, 5, 6, 2, 6], \"Term\": [\"1\", \"10\", \"100\", \"11\", \"2\", \"20\", \"40\", \"abl\", \"abl\", \"accomplish\", \"account\", \"account\", \"actual\", \"actual\", \"ad\", \"add\", \"add\", \"add\", \"add\", \"address\", \"agenc\", \"allow\", \"allow\", \"alreadi\", \"also\", \"also\", \"also\", \"also\", \"also\", \"also\", \"alway\", \"ammunit\", \"amp\", \"anoth\", \"anti\", \"api\", \"apo\", \"app\", \"app\", \"app\", \"app\", \"appreci\", \"around\", \"autom\", \"automat\", \"away\", \"base\", \"base\", \"base\", \"basket\", \"begin\", \"bet\", \"better\", \"better\", \"better\", \"better\", \"bluedotvapor\", \"book\", \"bookkeep\", \"brain\", \"break\", \"brief\", \"built\", \"busi\", \"button\", \"buy\", \"buy\", \"can\", \"can\", \"can\", \"can\", \"can\", \"can\", \"card\", \"card\", \"cart\", \"cart\", \"cartel\", \"case\", \"chang\", \"channel\", \"cheap\", \"check\", \"check\", \"check\", \"chipotl\", \"chrome\", \"chrome\", \"clean\", \"client\", \"com\", \"commerc\", \"commerc\", \"commerc\", \"commerc\", \"comparison\", \"complic\", \"comput\", \"confus\", \"contact\", \"convinc\", \"creat\", \"critic\", \"custom\", \"custom\", \"customis\", \"customiz\", \"d\", \"d\", \"d\", \"d\", \"depend\", \"detect\", \"dev\", \"dev\", \"dev\", \"differ\", \"differ\", \"differ\", \"difficult\", \"digit\", \"domain\", \"don\", \"don\", \"don\", \"don\", \"don\", \"done\", \"download\", \"drupal\", \"drupal\", \"e\", \"e\", \"e\", \"e\", \"easi\", \"easi\", \"easi\", \"easiest\", \"ecommerc\", \"ecommerc\", \"ecommerc\", \"ecommerc\", \"edit\", \"edit\", \"either\", \"encourag\", \"end\", \"endless\", \"everybodi\", \"everyth\", \"exampl\", \"experi\", \"fals\", \"fan\", \"fastest\", \"fba\", \"fd\", \"featur\", \"featur\", \"fee\", \"feedback\", \"find\", \"first\", \"fli\", \"florist\", \"flow\", \"format\", \"fpo\", \"free\", \"free\", \"free\", \"freelanc\", \"freelanc\", \"friendli\", \"frustrat\", \"fulfil\", \"full\", \"fulli\", \"function\", \"get\", \"get\", \"go\", \"go\", \"go\", \"good\", \"good\", \"good\", \"good\", \"great\", \"great\", \"gt\", \"guess\", \"gun\", \"guy\", \"handl\", \"head\", \"heard\", \"help\", \"help\", \"help\", \"help\", \"help\", \"hire\", \"hire\", \"hire\", \"hope\", \"horribl\", \"host\", \"host\", \"http\", \"huge\", \"idea\", \"immedi\", \"inform\", \"instal\", \"instal\", \"instead\", \"integr\", \"integr\", \"integr\", \"integr\", \"interest\", \"intern\", \"isn\", \"issu\", \"item\", \"item\", \"just\", \"just\", \"just\", \"just\", \"just\", \"just\", \"just\", \"know\", \"know\", \"know\", \"know\", \"larg\", \"launch\", \"learn\", \"like\", \"like\", \"like\", \"like\", \"like\", \"like\", \"like\", \"limit\", \"limit\", \"limit\", \"list\", \"list\", \"list\", \"local\", \"locat\", \"look\", \"look\", \"look\", \"look\", \"look\", \"look\", \"m\", \"m\", \"magento\", \"make\", \"make\", \"make\", \"make\", \"make\", \"manag\", \"manag\", \"market\", \"may\", \"may\", \"may\", \"mayb\", \"merchant\", \"messi\", \"method\", \"might\", \"might\", \"migrat\", \"mobil\", \"modul\", \"modul\", \"mom\", \"monthli\", \"mother\", \"much\", \"much\", \"much\", \"need\", \"need\", \"need\", \"need\", \"need\", \"nightmar\", \"offer\", \"offer\", \"one\", \"one\", \"one\", \"onlin\", \"onlin\", \"onlin\", \"open\", \"option\", \"option\", \"order\", \"order\", \"order\", \"otherwis\", \"outta\", \"owen\", \"owner\", \"owner\", \"pack\", \"packag\", \"page\", \"pay\", \"pay\", \"payment\", \"payment\", \"peopl\", \"peopl\", \"peopl\", \"perhap\", \"person\", \"phish\", \"plan\", \"platform\", \"platform\", \"platform\", \"platform\", \"pleas\", \"pleas\", \"plug\", \"plugin\", \"plugin\", \"plugin\", \"pm\", \"po\", \"po\", \"post\", \"post\", \"power\", \"practic\", \"price\", \"probabl\", \"probabl\", \"product\", \"product\", \"product\", \"product\", \"project\", \"purchas\", \"quantiti\", \"quantiti\", \"quantiti\", \"quickbook\", \"r\", \"rang\", \"rather\", \"re\", \"re\", \"re\", \"re\", \"re\", \"reason\", \"recent\", \"recent\", \"recent\", \"recommend\", \"recommend\", \"redirect\", \"rel\", \"releas\", \"repli\", \"requir\", \"requir\", \"resolv\", \"respons\", \"review\", \"rick\", \"run\", \"run\", \"s\", \"s\", \"s\", \"s\", \"s\", \"s\", \"s\", \"s\", \"saw\", \"secur\", \"secur\", \"secur\", \"see\", \"self\", \"sell\", \"sell\", \"servic\", \"set\", \"set\", \"set\", \"setup\", \"setup\", \"ship\", \"ship\", \"shop\", \"shop\", \"shopifi\", \"shopifi\", \"shopifi\", \"shopifi\", \"shopifi\", \"shopifi\", \"shopifi\", \"shopifi\", \"shopifi\", \"show\", \"sinc\", \"singl\", \"site\", \"site\", \"site\", \"site\", \"site\", \"site\", \"small\", \"small\", \"sold\", \"solid\", \"solo\", \"solut\", \"solv\", \"someon\", \"someon\", \"specif\", \"specif\", \"spree\", \"ssl\", \"still\", \"store\", \"store\", \"store\", \"store\", \"store\", \"stori\", \"strictli\", \"suit\", \"support\", \"support\", \"t\", \"t\", \"t\", \"t\", \"t\", \"t\", \"t\", \"take\", \"take\", \"target\", \"templat\", \"term\", \"terribl\", \"theme\", \"theme\", \"theme\", \"theme\", \"theme\", \"theme\", \"themeforest\", \"thing\", \"thing\", \"think\", \"think\", \"think\", \"though\", \"though\", \"though\", \"though\", \"tictail\", \"time\", \"tour\", \"tri\", \"tri\", \"tri\", \"tri\", \"triumphant\", \"tuesday\", \"typic\", \"unit\", \"updat\", \"use\", \"use\", \"use\", \"use\", \"usual\", \"valid\", \"variant\", \"variou\", \"video\", \"volus\", \"wander\", \"want\", \"want\", \"want\", \"way\", \"way\", \"way\", \"way\", \"way\", \"websit\", \"websit\", \"websit\", \"websit\", \"wee\", \"weebli\", \"weight\", \"whatev\", \"whatev\", \"wholesal\", \"wholesal\", \"will\", \"will\", \"will\", \"will\", \"win\", \"within\", \"without\", \"woocommerc\", \"woocommerc\", \"wordpress\", \"work\", \"work\", \"work\", \"work\", \"world\", \"worth\", \"wrap\", \"ye\"]}, \"topic.order\": [5, 4, 8, 9, 10, 3, 6, 7, 2, 1], \"plot.opts\": {\"ylab\": \"PC2\", \"xlab\": \"PC1\"}};\n",
+       "\n",
+       "function LDAvis_load_lib(url, callback){\n",
+       "  var s = document.createElement('script');\n",
+       "  s.src = url;\n",
+       "  s.async = true;\n",
+       "  s.onreadystatechange = s.onload = callback;\n",
+       "  s.onerror = function(){console.warn(\"failed to load library \" + url);};\n",
+       "  document.getElementsByTagName(\"head\")[0].appendChild(s);\n",
+       "}\n",
+       "\n",
+       "if(typeof(LDAvis) !== \"undefined\"){\n",
+       "   // already loaded: just create the visualization\n",
+       "   !function(LDAvis){\n",
+       "       new LDAvis(\"#\" + \"ldavis_el13161397912144685761290737594\", ldavis_el13161397912144685761290737594_data);\n",
+       "   }(LDAvis);\n",
+       "}else if(typeof define === \"function\" && define.amd){\n",
+       "   // require.js is available: use it to load d3/LDAvis\n",
+       "   require.config({paths: {d3: \"https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min\"}});\n",
+       "   require([\"d3\"], function(d3){\n",
+       "      window.d3 = d3;\n",
+       "      LDAvis_load_lib(\"https://cdn.rawgit.com/bmabey/pyLDAvis/files/ldavis.v1.0.0.js\", function(){\n",
+       "        new LDAvis(\"#\" + \"ldavis_el13161397912144685761290737594\", ldavis_el13161397912144685761290737594_data);\n",
+       "      });\n",
+       "    });\n",
+       "}else{\n",
+       "    // require.js not available: dynamically load d3 & LDAvis\n",
+       "    LDAvis_load_lib(\"https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js\", function(){\n",
+       "         LDAvis_load_lib(\"https://cdn.rawgit.com/bmabey/pyLDAvis/files/ldavis.v1.0.0.js\", function(){\n",
+       "                 new LDAvis(\"#\" + \"ldavis_el13161397912144685761290737594\", ldavis_el13161397912144685761290737594_data);\n",
+       "            })\n",
+       "         });\n",
+       "}\n",
+       "</script>"
+      ],
+      "text/plain": [
+       "PreparedData(topic_coordinates=            Freq  cluster  topics         x         y\n",
+       "topic                                                \n",
+       "4      29.144696        1       1 -0.006400  0.070252\n",
+       "3      15.490987        1       2  0.066310 -0.168455\n",
+       "7      12.776288        1       3 -0.168807 -0.039995\n",
+       "8      10.973308        1       4  0.150729  0.015220\n",
+       "9       9.781089        1       5  0.005911  0.080624\n",
+       "2       9.514414        1       6  0.004969  0.065630\n",
+       "5       5.001705        1       7 -0.056333 -0.030150\n",
+       "6       3.974146        1       8 -0.000124  0.006331\n",
+       "1       3.122146        1       9  0.012015  0.003869\n",
+       "0       0.221222        1      10 -0.008270 -0.003326, topic_info=     Category       Freq        Term      Total  loglift  logprob\n",
+       "term                                                             \n",
+       "367   Default   8.000000         use   8.000000  30.0000  30.0000\n",
+       "156   Default  35.000000     shopifi  35.000000  29.0000  29.0000\n",
+       "461   Default   3.000000        host   3.000000  28.0000  28.0000\n",
+       "329   Default   7.000000        want   7.000000  27.0000  27.0000\n",
+       "360   Default  11.000000        just  11.000000  26.0000  26.0000\n",
+       "344   Default   9.000000       theme   9.000000  25.0000  25.0000\n",
+       "212   Default   7.000000          re   7.000000  24.0000  24.0000\n",
+       "218   Default   7.000000    platform   7.000000  23.0000  23.0000\n",
+       "275   Default   7.000000         way   7.000000  22.0000  22.0000\n",
+       "517   Default   6.000000         set   6.000000  21.0000  21.0000\n",
+       "442   Default   7.000000        site   7.000000  20.0000  20.0000\n",
+       "174   Default   3.000000      drupal   3.000000  19.0000  19.0000\n",
+       "313   Default   7.000000        also   7.000000  18.0000  18.0000\n",
+       "253   Default   4.000000           m   4.000000  17.0000  17.0000\n",
+       "23    Default   7.000000       store   7.000000  16.0000  16.0000\n",
+       "467   Default   7.000000           d   7.000000  15.0000  15.0000\n",
+       "310   Default   5.000000         add   5.000000  14.0000  14.0000\n",
+       "455   Default   3.000000        work   3.000000  13.0000  13.0000\n",
+       "107   Default   4.000000         one   4.000000  12.0000  12.0000\n",
+       "263   Default   6.000000      websit   6.000000  11.0000  11.0000\n",
+       "493   Default   3.000000    merchant   3.000000  10.0000  10.0000\n",
+       "300   Default   4.000000        know   4.000000   9.0000   9.0000\n",
+       "45    Default   3.000000  woocommerc   3.000000   8.0000   8.0000\n",
+       "202   Default   7.000000        look   7.000000   7.0000   7.0000\n",
+       "319   Default   3.000000     product   3.000000   6.0000   6.0000\n",
+       "482   Default   4.000000          go   4.000000   5.0000   5.0000\n",
+       "342   Default   7.000000    ecommerc   7.000000   4.0000   4.0000\n",
+       "178   Default  12.000000         can  12.000000   3.0000   3.0000\n",
+       "406   Default   6.000000        list   6.000000   2.0000   2.0000\n",
+       "478   Default   4.000000      integr   4.000000   1.0000   1.0000\n",
+       "...       ...        ...         ...        ...      ...      ...\n",
+       "156   Topic10   0.004989     shopifi  35.208201  -2.7479  -6.2540\n",
+       "262   Topic10   0.004986      instal   4.722042  -0.7397  -6.2548\n",
+       "504   Topic10   0.004984           t  10.173024  -1.5075  -6.2551\n",
+       "370   Topic10   0.004983        like   7.239490  -1.1675  -6.2552\n",
+       "202   Topic10   0.004981        look   7.712224  -1.2311  -6.2556\n",
+       "360   Topic10   0.004981        just  11.170958  -1.6016  -6.2556\n",
+       "90    Topic10   0.004981        busi   4.894885  -0.7766  -6.2558\n",
+       "433   Topic10   0.004979     magento   4.894904  -0.7770  -6.2562\n",
+       "315   Topic10   0.004978       solut   4.034418  -0.5838  -6.2563\n",
+       "342   Topic10   0.004977    ecommerc   7.470521  -1.2001  -6.2564\n",
+       "196   Topic10   0.004977           e   4.220263  -0.6290  -6.2564\n",
+       "310   Topic10   0.004977         add   5.554655  -0.9038  -6.2565\n",
+       "65    Topic10   0.004976        good   4.393100  -0.6694  -6.2567\n",
+       "410   Topic10   0.004976       thing   3.859778  -0.5401  -6.2568\n",
+       "450   Topic10   0.004975       might   2.828387  -0.2292  -6.2568\n",
+       "289   Topic10   0.004975        free   3.209070  -0.3556  -6.2570\n",
+       "511   Topic10   0.004974       built   2.387444  -0.0601  -6.2572\n",
+       "29    Topic10   0.004974        will   7.558663  -1.2125  -6.2572\n",
+       "443   Topic10   0.004974           s  15.534127  -1.9329  -6.2572\n",
+       "290   Topic10   0.004973         app   9.172609  -1.4062  -6.2573\n",
+       "496   Topic10   0.004973      though   4.006863  -0.5780  -6.2573\n",
+       "76    Topic10   0.004973     monthli   2.313522  -0.0288  -6.2574\n",
+       "95    Topic10   0.004973     support   3.688965  -0.4954  -6.2574\n",
+       "329   Topic10   0.004972        want   7.377234  -1.1885  -6.2574\n",
+       "263   Topic10   0.004972      websit   6.962120  -1.1307  -6.2575\n",
+       "463   Topic10   0.004971     commerc   4.908011  -0.7811  -6.2576\n",
+       "212   Topic10   0.004971          re   7.483249  -1.2030  -6.2577\n",
+       "320   Topic10   0.004971      recent   2.672644  -0.1734  -6.2577\n",
+       "313   Topic10   0.004970        also   7.575453  -1.2154  -6.2578\n",
+       "482   Topic10   0.004970          go   4.967237  -0.7935  -6.2580\n",
+       "\n",
+       "[529 rows x 6 columns], token_table=      Topic      Freq        Term\n",
+       "term                             \n",
+       "428       3  0.747633           1\n",
+       "494       3  0.707412          10\n",
+       "350       8  0.933118         100\n",
+       "210       3  0.960432          11\n",
+       "121       3  0.747633           2\n",
+       "384       3  0.707401          20\n",
+       "312       3  0.747633          40\n",
+       "379       1  0.773158         abl\n",
+       "379       4  0.257719         abl\n",
+       "519       5  0.782110  accomplish\n",
+       "309       4  0.588479     account\n",
+       "309       6  0.294239     account\n",
+       "146       1  0.536774      actual\n",
+       "146       4  0.268387      actual\n",
+       "445       7  0.889185          ad\n",
+       "310       1  0.360058         add\n",
+       "310       3  0.360058         add\n",
+       "310       6  0.180029         add\n",
+       "310       7  0.180029         add\n",
+       "197       1  0.864390     address\n",
+       "322       5  0.782147       agenc\n",
+       "489       1  0.716153       allow\n",
+       "489       8  0.358077       allow\n",
+       "140       2  0.738053     alreadi\n",
+       "313       1  0.264011        also\n",
+       "313       2  0.264011        also\n",
+       "313       3  0.132005        also\n",
+       "313       6  0.132005        also\n",
+       "313       7  0.132005        also\n",
+       "313       8  0.132005        also\n",
+       "...     ...       ...         ...\n",
+       "275       7  0.131610         way\n",
+       "263       2  0.287269      websit\n",
+       "263       4  0.143634      websit\n",
+       "263       5  0.287269      websit\n",
+       "263       6  0.143634      websit\n",
+       "464       2  0.738053         wee\n",
+       "55        4  0.769942      weebli\n",
+       "164       3  0.747628      weight\n",
+       "26        1  0.467109      whatev\n",
+       "26        6  0.467109      whatev\n",
+       "421       2  0.413442    wholesal\n",
+       "421       7  0.413442    wholesal\n",
+       "29        1  0.396896        will\n",
+       "29        2  0.264597        will\n",
+       "29        4  0.132299        will\n",
+       "29        5  0.132299        will\n",
+       "282       7  0.889181         win\n",
+       "366       2  0.738053      within\n",
+       "405       1  0.945140     without\n",
+       "45        5  0.639120  woocommerc\n",
+       "45        8  0.319560  woocommerc\n",
+       "7         5  0.509058   wordpress\n",
+       "455       1  0.255222        work\n",
+       "455       2  0.255222        work\n",
+       "455       3  0.255222        work\n",
+       "455       8  0.255222        work\n",
+       "499       5  0.782146       world\n",
+       "432       6  0.781047       worth\n",
+       "444       2  0.738053        wrap\n",
+       "155       6  0.781062          ye\n",
+       "\n",
+       "[545 rows x 3 columns], R=30, lambda_step=0.01, plot_opts={'ylab': 'PC2', 'xlab': 'PC1'}, topic_order=[5, 4, 8, 9, 10, 3, 6, 7, 2, 1])"
+      ]
+     },
+     "execution_count": 11,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# visualize LDA model - this is just off the shelf\n",
+    "pyLDAvis.enable_notebook()\n",
+    "pyLDAvis.gensim.prepare(ldamodel, corpus, dictionary)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true
+   },
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.4.3"
+  },
+  "widgets": {
+   "state": {},
+   "version": "1.1.2"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 0
+}
